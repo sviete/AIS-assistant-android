@@ -22,6 +22,8 @@ class AuthenticationRepositoryImpl @Inject constructor(
         private const val PREF_EXPIRED_DATE = "expires_date"
         private const val PREF_REFRESH_TOKEN = "refresh_token"
         private const val PREF_TOKEN_TYPE = "token_type"
+
+        private const val PREF_BIOMETRIC_ENABLED = "biometric_enabled"
     }
 
     override suspend fun registerAuthorizationCode(authorizationCode: String) {
@@ -41,8 +43,8 @@ class AuthenticationRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun retrieveExternalAuthentication(): String {
-        return convertSession(ensureValidSession())
+    override suspend fun retrieveExternalAuthentication(forceRefresh: Boolean): String {
+        return convertSession(ensureValidSession(forceRefresh))
     }
 
     override suspend fun revokeSession() {
@@ -51,7 +53,7 @@ class AuthenticationRepositoryImpl @Inject constructor(
         saveSession(null)
         urlRepository.saveUrl("", true)
         urlRepository.saveUrl("", false)
-        urlRepository.saveHomeWifiSsid(null)
+        urlRepository.saveHomeWifiSsids(emptySet())
     }
 
     override suspend fun getSessionState(): SessionState {
@@ -101,10 +103,10 @@ class AuthenticationRepositoryImpl @Inject constructor(
         }
     }
 
-    private suspend fun ensureValidSession(): Session {
+    private suspend fun ensureValidSession(forceRefresh: Boolean = false): Session {
         val session = retrieveSession() ?: throw AuthorizationException()
 
-        if (session.isExpired()) {
+        if (session.isExpired() || forceRefresh) {
             return authenticationService.refreshToken(
                 AuthenticationService.GRANT_TYPE_REFRESH,
                 session.refreshToken,
@@ -137,5 +139,13 @@ class AuthenticationRepositoryImpl @Inject constructor(
         localStorage.putLong(PREF_EXPIRED_DATE, session?.expiresTimestamp)
         localStorage.putString(PREF_REFRESH_TOKEN, session?.refreshToken)
         localStorage.putString(PREF_TOKEN_TYPE, session?.tokenType)
+    }
+
+    override suspend fun setLockEnabled(enabled: Boolean) {
+        localStorage.putBoolean(PREF_BIOMETRIC_ENABLED, enabled)
+    }
+
+    override suspend fun isLockEnabled(): Boolean {
+        return localStorage.getBoolean(PREF_BIOMETRIC_ENABLED)
     }
 }

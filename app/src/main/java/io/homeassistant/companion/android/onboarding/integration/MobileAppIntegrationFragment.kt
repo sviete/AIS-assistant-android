@@ -77,8 +77,8 @@ class MobileAppIntegrationFragment : Fragment(), MobileAppIntegrationView {
             val hasLocationPermission = PermissionManager.hasLocationPermissions(context)
 
             zoneTracking = findViewById<SwitchCompat>(R.id.location_zone).apply {
-                setOnClickListener {
-                    presenter.onToggleZoneTracking(it.isSelected)
+                setOnCheckedChangeListener { _, isChecked ->
+                    presenter.onToggleZoneTracking(isChecked)
                 }
                 isEnabled = hasLocationPermission
                 isChecked = hasLocationPermission
@@ -87,8 +87,8 @@ class MobileAppIntegrationFragment : Fragment(), MobileAppIntegrationView {
             zoneTrackingSummary.isEnabled = hasLocationPermission
 
             backgroundTracking = findViewById<SwitchCompat>(R.id.location_background).apply {
-                setOnClickListener {
-                    presenter.onToggleBackgroundTracking(it.isSelected)
+                setOnCheckedChangeListener { _, isChecked ->
+                    presenter.onToggleBackgroundTracking(isChecked)
                 }
                 isEnabled = hasLocationPermission
                 isChecked = hasLocationPermission && isIgnoringBatteryOptimizations()
@@ -117,7 +117,7 @@ class MobileAppIntegrationFragment : Fragment(), MobileAppIntegrationView {
     }
 
     override fun onDestroy() {
-        PermissionManager.restartLocationTracking(context!!, activity!!)
+        PermissionManager.restartLocationTracking(context!!)
         presenter.onFinish()
         super.onDestroy()
     }
@@ -148,8 +148,6 @@ class MobileAppIntegrationFragment : Fragment(), MobileAppIntegrationView {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
         if (requestCode == BACKGROUND_REQUEST && isIgnoringBatteryOptimizations()) {
             zoneTracking.isChecked = true
             presenter.onToggleBackgroundTracking(true)
@@ -169,7 +167,7 @@ class MobileAppIntegrationFragment : Fragment(), MobileAppIntegrationView {
     }
 
     private fun isIgnoringBatteryOptimizations(): Boolean {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+        return Build.VERSION.SDK_INT <= Build.VERSION_CODES.M ||
                 context?.getSystemService(PowerManager::class.java)
                     ?.isIgnoringBatteryOptimizations(activity?.packageName ?: "")
                 ?: false

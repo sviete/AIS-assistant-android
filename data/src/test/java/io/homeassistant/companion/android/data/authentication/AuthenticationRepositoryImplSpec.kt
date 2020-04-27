@@ -133,7 +133,7 @@ object AuthenticationRepositoryImplSpec : Spek({
                 lateinit var externalAuth: String
                 beforeEachTest {
                     externalAuth = runBlocking {
-                        repository.retrieveExternalAuthentication()
+                        repository.retrieveExternalAuthentication(false)
                     }
                 }
 
@@ -154,7 +154,7 @@ object AuthenticationRepositoryImplSpec : Spek({
                         authenticationService.revokeToken("IJKLMNOPQRST", "revoke")
                         urlRepository.saveUrl("", true)
                         urlRepository.saveUrl("", false)
-                        urlRepository.saveHomeWifiSsid(null)
+                        urlRepository.saveHomeWifiSsids(emptySet())
                     }
                 }
 
@@ -207,7 +207,7 @@ object AuthenticationRepositoryImplSpec : Spek({
                 lateinit var externalAuth: String
                 beforeEachTest {
                     externalAuth = runBlocking {
-                        repository.retrieveExternalAuthentication()
+                        repository.retrieveExternalAuthentication(false)
                     }
                 }
 
@@ -273,7 +273,7 @@ object AuthenticationRepositoryImplSpec : Spek({
                 beforeEachTest {
                     thrown = catchThrowable {
                         runBlocking {
-                            repository.retrieveExternalAuthentication()
+                            repository.retrieveExternalAuthentication(false)
                         }
                     }
                 }

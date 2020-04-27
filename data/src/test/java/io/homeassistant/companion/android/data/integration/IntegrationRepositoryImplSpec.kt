@@ -70,7 +70,7 @@ object IntegrationRepositoryImplSpec : Spek({
                         "osVersion",
                         false,
                         hashMapOf(
-                            "push_url" to "https://mobile-apps.home-assistant.io/api/sendPushNotification",
+                            "push_url" to "https://mobile-apps.home-assistant.io/api/sendPush/android/v1",
                             "push_token" to (deviceRegistration.pushToken ?: "push_token")
                         ),
                         "deviceId"
@@ -138,7 +138,7 @@ object IntegrationRepositoryImplSpec : Spek({
                         "osVersion",
                         false,
                         hashMapOf(
-                            "push_url" to "https://mobile-apps.home-assistant.io/api/sendPushNotification",
+                            "push_url" to "https://mobile-apps.home-assistant.io/api/sendPush/android/v1",
                             "push_token" to (deviceRegistration.pushToken ?: "push_token")
                         ),
                         null
@@ -201,7 +201,7 @@ object IntegrationRepositoryImplSpec : Spek({
                     "osVersion",
                     null,
                     hashMapOf(
-                        "push_url" to "https://mobile-apps.home-assistant.io/api/sendPushNotification",
+                        "push_url" to "https://mobile-apps.home-assistant.io/api/sendPush/android/v1",
                         "push_token" to (deviceRegistration.pushToken ?: "push_token")
                     ),
                     null
@@ -296,8 +296,7 @@ object IntegrationRepositoryImplSpec : Spek({
                     1,
                     2,
                     3,
-                    4,
-                    5
+                    4
                 )
                 val integrationRequest =
                     IntegrationRequest(
@@ -306,7 +305,6 @@ object IntegrationRepositoryImplSpec : Spek({
                             location.locationName,
                             location.gps,
                             location.gpsAccuracy,
-                            location.battery,
                             location.speed,
                             location.altitude,
                             location.course,
@@ -346,8 +344,7 @@ object IntegrationRepositoryImplSpec : Spek({
                     1,
                     2,
                     3,
-                    4,
-                    5
+                    4
                 )
                 val integrationRequest =
                     IntegrationRequest(
@@ -356,7 +353,6 @@ object IntegrationRepositoryImplSpec : Spek({
                             location.locationName,
                             location.gps,
                             location.gpsAccuracy,
-                            location.battery,
                             location.speed,
                             location.altitude,
                             location.course,
@@ -395,8 +391,7 @@ object IntegrationRepositoryImplSpec : Spek({
                     1,
                     2,
                     3,
-                    4,
-                    5
+                    4
                 )
                 val integrationRequest =
                     IntegrationRequest(
@@ -405,7 +400,6 @@ object IntegrationRepositoryImplSpec : Spek({
                             location.locationName,
                             location.gps,
                             location.gpsAccuracy,
-                            location.battery,
                             location.speed,
                             location.altitude,
                             location.course,
@@ -443,8 +437,7 @@ object IntegrationRepositoryImplSpec : Spek({
                     1,
                     2,
                     3,
-                    4,
-                    5
+                    4
                 )
                 val integrationRequest =
                     IntegrationRequest(
@@ -453,7 +446,6 @@ object IntegrationRepositoryImplSpec : Spek({
                             location.locationName,
                             location.gps,
                             location.gpsAccuracy,
-                            location.battery,
                             location.speed,
                             location.altitude,
                             location.course,
@@ -507,8 +499,7 @@ object IntegrationRepositoryImplSpec : Spek({
                     1,
                     2,
                     3,
-                    4,
-                    5
+                    4
                 )
 
                 lateinit var thrown: Throwable
