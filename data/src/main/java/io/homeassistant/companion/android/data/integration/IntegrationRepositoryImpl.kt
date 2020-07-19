@@ -13,6 +13,7 @@ import io.homeassistant.companion.android.domain.authentication.AuthenticationRe
 import io.homeassistant.companion.android.domain.integration.DeviceRegistration
 import io.homeassistant.companion.android.domain.integration.Entity
 import io.homeassistant.companion.android.domain.integration.IntegrationRepository
+import io.homeassistant.companion.android.domain.integration.Panel
 import io.homeassistant.companion.android.domain.integration.Sensor
 import io.homeassistant.companion.android.domain.integration.SensorRegistration
 import io.homeassistant.companion.android.domain.integration.Service
@@ -49,6 +50,8 @@ class IntegrationRepositoryImpl @Inject constructor(
         private const val PREF_ZONE_ENABLED = "zone_enabled"
         private const val PREF_BACKGROUND_ENABLED = "background_enabled"
         private const val PREF_FULLSCREEN_ENABLED = "fullscreen_enabled"
+        private const val PREF_SESSION_TIMEOUT = "session_timeout"
+        private const val PREF_SESSION_EXPIRE = "session_expire"
         private const val PREF_SENSORS_REGISTERED = "sensors_registered"
     }
 
@@ -243,6 +246,22 @@ class IntegrationRepositoryImpl @Inject constructor(
         return localStorage.getBoolean(PREF_FULLSCREEN_ENABLED)
     }
 
+    override suspend fun sessionTimeOut(value: Int) {
+        localStorage.putInt(PREF_SESSION_TIMEOUT, value)
+    }
+
+    override suspend fun getSessionTimeOut(): Int {
+        return localStorage.getInt(PREF_SESSION_TIMEOUT) ?: 0
+    }
+
+    override suspend fun setSessionExpireMillis(value: Long) {
+        localStorage.putLong(PREF_SESSION_EXPIRE, value)
+    }
+
+    override suspend fun getSessionExpireMillis(): Long {
+        return localStorage.getLong(PREF_SESSION_EXPIRE) ?: 0
+    }
+
     override suspend fun getThemeColor(): String {
         val getConfigRequest =
             IntegrationRequest(
@@ -262,6 +281,11 @@ class IntegrationRepositoryImpl @Inject constructor(
         }
 
         throw IntegrationException()
+    }
+
+    // TODO: Use websocket to get panels.
+    override suspend fun getPanels(): Array<Panel> {
+        return arrayOf()
     }
 
     override suspend fun getServices(): Array<Service> {

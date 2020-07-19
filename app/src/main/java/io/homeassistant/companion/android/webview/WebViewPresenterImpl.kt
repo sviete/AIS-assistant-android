@@ -6,6 +6,7 @@ import android.util.Log
 import io.homeassistant.companion.android.domain.authentication.AuthenticationUseCase
 import io.homeassistant.companion.android.domain.authentication.SessionState
 import io.homeassistant.companion.android.domain.integration.IntegrationUseCase
+import io.homeassistant.companion.android.domain.integration.Panel
 import io.homeassistant.companion.android.domain.url.UrlUseCase
 import io.homeassistant.companion.android.util.UrlHandler
 import java.net.URL
@@ -72,7 +73,7 @@ class WebViewPresenterImpl @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "Unable to retrieve external auth", e)
                 view.setExternalAuth("$callback(false)")
-                view.showError(authenticationUseCase.getSessionState() == SessionState.ANONYMOUS)
+                view.showError(isAuthenticationError = authenticationUseCase.getSessionState() == SessionState.ANONYMOUS)
             }
         }
     }
@@ -90,6 +91,18 @@ class WebViewPresenterImpl @Inject constructor(
         }
     }
 
+    override fun getPanels(): Array<Panel> {
+        return runBlocking {
+            var panels = arrayOf<Panel>()
+            try {
+                panels = integrationUseCase.getPanels()
+            } catch (e: Exception) {
+                Log.e(TAG, "Issue getting panels.", e)
+            }
+            panels
+        }
+    }
+
     override fun clearKnownUrls() {
         mainScope.launch {
             urlUseCase.saveUrl("", true)
@@ -100,6 +113,30 @@ class WebViewPresenterImpl @Inject constructor(
     override fun isFullScreen(): Boolean {
         return runBlocking {
             integrationUseCase.isFullScreenEnabled()
+        }
+    }
+
+    override fun isLockEnabled(): Boolean {
+        return runBlocking {
+            authenticationUseCase.isLockEnabled()
+        }
+    }
+
+    override fun sessionTimeOut(): Int {
+        return runBlocking {
+            integrationUseCase.getSessionTimeOut()
+        }
+    }
+
+    override fun setSessionExpireMillis(value: Long) {
+        mainScope.launch {
+            integrationUseCase.setSessionExpireMillis(value)
+        }
+    }
+
+    override fun getSessionExpireMillis(): Long {
+        return runBlocking {
+            integrationUseCase.getSessionExpireMillis()
         }
     }
 

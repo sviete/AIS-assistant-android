@@ -76,12 +76,32 @@ class IntegrationUseCaseImpl @Inject constructor(
         return integrationRepository.isFullScreenEnabled()
     }
 
+    override suspend fun sessionTimeOut(value: Int) {
+        return integrationRepository.sessionTimeOut(value)
+    }
+
+    override suspend fun getSessionTimeOut(): Int {
+        return integrationRepository.getSessionTimeOut()
+    }
+
+    override suspend fun setSessionExpireMillis(value: Long) {
+        return integrationRepository.setSessionExpireMillis(value)
+    }
+
+    override suspend fun getSessionExpireMillis(): Long {
+        return integrationRepository.getSessionExpireMillis()
+    }
+
     override suspend fun getServices(): Array<Service> {
         return integrationRepository.getServices()
     }
 
     override suspend fun getEntities(): Array<Entity<Any>> {
         return integrationRepository.getEntities()
+    }
+
+    override suspend fun getPanels(): Array<Panel> {
+        return integrationRepository.getPanels()
     }
 
     override suspend fun getThemeColor(): String {

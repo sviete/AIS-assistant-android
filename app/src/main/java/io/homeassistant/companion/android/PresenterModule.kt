@@ -6,9 +6,6 @@ import dagger.Provides
 import io.homeassistant.companion.android.launch.LaunchPresenter
 import io.homeassistant.companion.android.launch.LaunchPresenterImpl
 import io.homeassistant.companion.android.launch.LaunchView
-import io.homeassistant.companion.android.lock.LockPresenter
-import io.homeassistant.companion.android.lock.LockPresenterImpl
-import io.homeassistant.companion.android.lock.LockView
 import io.homeassistant.companion.android.onboarding.authentication.AuthenticationPresenter
 import io.homeassistant.companion.android.onboarding.authentication.AuthenticationPresenterImpl
 import io.homeassistant.companion.android.onboarding.authentication.AuthenticationView
@@ -24,6 +21,9 @@ import io.homeassistant.companion.android.onboarding.manual.ManualSetupView
 import io.homeassistant.companion.android.settings.SettingsPresenter
 import io.homeassistant.companion.android.settings.SettingsPresenterImpl
 import io.homeassistant.companion.android.settings.SettingsView
+import io.homeassistant.companion.android.settings.shortcuts.ShortcutsPresenter
+import io.homeassistant.companion.android.settings.shortcuts.ShortcutsPresenterImpl
+import io.homeassistant.companion.android.settings.shortcuts.ShortcutsView
 import io.homeassistant.companion.android.webview.WebView
 import io.homeassistant.companion.android.webview.WebViewPresenter
 import io.homeassistant.companion.android.webview.WebViewPresenterImpl
@@ -37,8 +37,8 @@ class PresenterModule {
     private lateinit var manualSetupView: ManualSetupView
     private lateinit var mobileAppIntegrationView: MobileAppIntegrationView
     private lateinit var settingsView: SettingsView
+    private lateinit var shortcutsView: ShortcutsView
     private lateinit var webView: WebView
-    private lateinit var lockView: LockView
 
     constructor(launchView: LaunchView) {
         this.launchView = launchView
@@ -64,12 +64,12 @@ class PresenterModule {
         this.settingsView = settingsView
     }
 
-    constructor(webView: WebView) {
-        this.webView = webView
+    constructor(shortcutsView: ShortcutsView) {
+        this.shortcutsView = shortcutsView
     }
 
-    constructor(lockView: LockView) {
-        this.lockView = lockView
+    constructor(webView: WebView) {
+        this.webView = webView
     }
 
     @Provides
@@ -91,10 +91,10 @@ class PresenterModule {
     fun provideSettingsView() = settingsView
 
     @Provides
-    fun provideWebView() = webView
+    fun provideShortcutsView() = shortcutsView
 
     @Provides
-    fun provideLockView() = lockView
+    fun provideWebView() = webView
 
     @Module
     interface Declaration {
@@ -118,9 +118,9 @@ class PresenterModule {
         fun bindSettingsPresenter(presenter: SettingsPresenterImpl): SettingsPresenter
 
         @Binds
-        fun bindWebViewPresenterImpl(presenter: WebViewPresenterImpl): WebViewPresenter
+        fun bindShortcutsPresenter(presenter: ShortcutsPresenterImpl): ShortcutsPresenter
 
         @Binds
-        fun bindLockPresenter(presenter: LockPresenterImpl): LockPresenter
+        fun bindWebViewPresenterImpl(presenter: WebViewPresenterImpl): WebViewPresenter
     }
 }

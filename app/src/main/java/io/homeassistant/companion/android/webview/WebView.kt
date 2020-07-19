@@ -1,6 +1,6 @@
 package io.homeassistant.companion.android.webview
 
-import android.webkit.HttpAuthHandler
+import android.net.http.SslError
 
 interface WebView {
 
@@ -12,7 +12,5 @@ interface WebView {
 
     fun openOnBoarding()
 
-    fun showError(isAuthenticationError: Boolean = false)
-
-    fun authenticationDialog(handler: HttpAuthHandler)
+    fun showError(isAuthenticationError: Boolean = false, error: SslError? = null, description: String? = null)
 }

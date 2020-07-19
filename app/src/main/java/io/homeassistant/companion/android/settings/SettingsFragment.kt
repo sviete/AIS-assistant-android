@@ -1,10 +1,9 @@
 package io.homeassistant.companion.android.settings
 
+import android.os.Build
 import android.os.Bundle
 import androidx.appcompat.app.AlertDialog
 import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricPrompt
-import androidx.core.content.ContextCompat
 import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -13,7 +12,9 @@ import io.homeassistant.companion.android.BuildConfig
 import io.homeassistant.companion.android.DaggerPresenterComponent
 import io.homeassistant.companion.android.PresenterModule
 import io.homeassistant.companion.android.R
+import io.homeassistant.companion.android.authenticator.Authenticator
 import io.homeassistant.companion.android.common.dagger.GraphComponentAccessor
+import io.homeassistant.companion.android.settings.shortcuts.ShortcutsFragment
 import io.homeassistant.companion.android.settings.ssid.SsidDialogFragment
 import io.homeassistant.companion.android.settings.ssid.SsidPreference
 import io.homeassistant.companion.android.util.PermissionManager
@@ -30,6 +31,8 @@ class SettingsFragment : PreferenceFragmentCompat(), SettingsView {
 
     @Inject
     lateinit var presenter: SettingsPresenter
+    private lateinit var authenticator: Authenticator
+    private var setLock = false
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         DaggerPresenterComponent
@@ -39,6 +42,8 @@ class SettingsFragment : PreferenceFragmentCompat(), SettingsView {
             .build()
             .inject(this)
 
+        authenticator = Authenticator(requireContext(), requireActivity(), ::authenticationResult)
+
         preferenceManager.preferenceDataStore = presenter.getPreferenceDataStore()
 
         setPreferencesFromResource(R.xml.preferences, rootKey)
@@ -46,7 +51,7 @@ class SettingsFragment : PreferenceFragmentCompat(), SettingsView {
         val onChangeUrlValidator = Preference.OnPreferenceChangeListener { _, newValue ->
             val isValid = newValue.toString().isBlank() || newValue.toString().toHttpUrlOrNull() != null
             if (!isValid) {
-                AlertDialog.Builder(activity!!)
+                AlertDialog.Builder(requireActivity())
                     .setTitle(R.string.url_invalid)
                     .setMessage(R.string.url_parse_error)
                     .setPositiveButton(android.R.string.ok) { _, _ -> }
@@ -61,11 +66,13 @@ class SettingsFragment : PreferenceFragmentCompat(), SettingsView {
                 isValid = true
             else {
                 isValid = true
-                if (BiometricManager.from(activity!!).canAuthenticate() == BiometricManager.BIOMETRIC_SUCCESS)
-                    promptForUnlock()
-                else {
+                if (BiometricManager.from(requireActivity()).canAuthenticate() == BiometricManager.BIOMETRIC_SUCCESS) {
+                    setLock = true
+                    authenticator.title = getString(R.string.biometric_set_title)
+                    authenticator.authenticate()
+                } else {
                     isValid = false
-                    AlertDialog.Builder(activity!!)
+                    AlertDialog.Builder(requireActivity())
                         .setTitle(R.string.set_lock_title)
                         .setMessage(R.string.set_lock_message)
                         .setPositiveButton(android.R.string.ok) { _, _ -> }
@@ -73,6 +80,15 @@ class SettingsFragment : PreferenceFragmentCompat(), SettingsView {
                 }
             }
             isValid
+        }
+
+        val onClickShortcuts = Preference.OnPreferenceClickListener {
+            parentFragmentManager
+                .beginTransaction()
+                .replace(R.id.content, ShortcutsFragment.newInstance())
+                .addToBackStack(getString(R.string.shortcuts))
+                .commit()
+            true
         }
 
         findPreference<EditTextPreference>("connection_internal")?.onPreferenceChangeListener =
@@ -84,6 +100,14 @@ class SettingsFragment : PreferenceFragmentCompat(), SettingsView {
         findPreference<SwitchPreference>("app_lock")?.onPreferenceChangeListener =
             onChangeBiometricValidator
 
+        val shortcuts = findPreference<Preference>("shortcuts")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && presenter.getPanels().isNotEmpty()) {
+            shortcuts?.onPreferenceClickListener =
+                onClickShortcuts
+        } else {
+            shortcuts?.isVisible = false
+        }
+
         findPreference<Preference>("version")?.let {
             it.summary = BuildConfig.VERSION_NAME
         }
@@ -92,10 +116,10 @@ class SettingsFragment : PreferenceFragmentCompat(), SettingsView {
     }
 
     override fun onLocationSettingChanged() {
-        if (!PermissionManager.hasLocationPermissions(context!!)) {
+        if (!PermissionManager.checkLocationPermission(requireContext())) {
             PermissionManager.requestLocationPermissions(this)
         }
-        PermissionManager.restartLocationTracking(context!!)
+        PermissionManager.restartLocationTracking(requireContext())
     }
 
     override fun disableInternalConnection() {
@@ -113,8 +137,8 @@ class SettingsFragment : PreferenceFragmentCompat(), SettingsView {
     override fun onDisplayPreferenceDialog(preference: Preference) {
         if (preference is SsidPreference) {
             // check if dialog is already showing
-            val fm = fragmentManager
-            if (fm == null || fm.findFragmentByTag(SSID_DIALOG_TAG) != null) {
+            val fm = parentFragmentManager
+            if (fm.findFragmentByTag(SSID_DIALOG_TAG) != null) {
                 return
             }
             val ssidDialog = SsidDialogFragment.newInstance("connection_internal_ssids")
@@ -132,8 +156,8 @@ class SettingsFragment : PreferenceFragmentCompat(), SettingsView {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
-        if (PermissionManager.validateLocationPermissions(requestCode, permissions, grantResults)) {
-            PermissionManager.restartLocationTracking(context!!)
+        if (PermissionManager.validateLocationPermissions(requestCode, grantResults)) {
+            PermissionManager.restartLocationTracking(requireContext())
         } else {
             // If we don't have permissions, don't let them in!
             findPreference<SwitchPreference>("location_zone")!!.isChecked = false
@@ -141,30 +165,8 @@ class SettingsFragment : PreferenceFragmentCompat(), SettingsView {
         }
     }
 
-    private fun promptForUnlock() {
-        val executor = ContextCompat.getMainExecutor(activity!!)
+    private fun authenticationResult(result: Int) {
         val switchLock = findPreference<SwitchPreference>("app_lock")
-        val biometricPrompt = BiometricPrompt(activity!!, executor,
-            object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationError(
-                    errorCode: Int,
-                    errString: CharSequence
-                ) {
-                    super.onAuthenticationError(errorCode, errString)
-                    switchLock?.isChecked = false
-                }
-
-                override fun onAuthenticationFailed() {
-                    super.onAuthenticationFailed()
-                    switchLock?.isChecked = false
-                }
-            })
-        val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle(activity!!.resources.getString(R.string.biometric_title))
-            .setSubtitle(activity!!.resources.getString(R.string.biometric_message))
-            .setDeviceCredentialAllowed(true)
-            .build()
-
-        biometricPrompt.authenticate(promptInfo)
+        switchLock?.isChecked = result == Authenticator.SUCCESS
     }
 }
