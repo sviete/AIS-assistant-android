@@ -1,14 +1,13 @@
 object Config {
 
     object Plugin {
-        const val android = "com.android.tools.build:gradle:4.0.0"
+        const val android = "com.android.tools.build:gradle:4.0.1"
         const val kotlin = "org.jetbrains.kotlin:kotlin-gradle-plugin:${Dependency.Kotlin.version}"
         const val google = "com.google.gms:google-services:4.3.3"
         const val appDistribution = "com.google.firebase:firebase-appdistribution-gradle:1.4.0"
         const val ktlint = "org.jlleitschuh.gradle:ktlint-gradle:9.2.1"
         const val playPublisher = "com.github.triplet.gradle:play-publisher:2.7.5"
         const val androidJunit5 = "de.mannodermaus.gradle.plugins:android-junit5:1.6.0.0"
-        const val crashlytics = "com.google.firebase:firebase-crashlytics-gradle:2.1.1"
     }
 
     object Repository {
@@ -30,6 +29,7 @@ object Config {
 
             private const val coroutinesVersion = "1.3.3"
             const val coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-core:${coroutinesVersion}"
+            const val coroutinesPlayServices = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.3.8"
             const val coroutinesAndroid = "org.jetbrains.kotlinx:kotlinx-coroutines-android:${coroutinesVersion}"
             const val coroutinesTest = "org.jetbrains.kotlinx:kotlinx-coroutines-test:${coroutinesVersion}"
         }
@@ -39,16 +39,20 @@ object Config {
             const val dagger = "com.google.dagger:dagger:${daggerVersion}"
             const val daggerCompiler = "com.google.dagger:dagger-compiler:${daggerVersion}"
 
-            const val material = "com.google.android.material:material:1.1.0"
+            const val material = "com.google.android.material:material:1.2.0"
         }
 
         object AndroidX {
 
+            const val webKit = "androidx.webkit:webkit:1.3.0-rc02"
             const val appcompat = "androidx.appcompat:appcompat:1.1.0"
             const val lifecycle = "androidx.lifecycle:lifecycle-runtime-ktx:2.2.0"
             const val recyclerview = "androidx.recyclerview:recyclerview:1.1.0"
             const val constraintlayout = "androidx.constraintlayout:constraintlayout:1.1.3"
             const val preference = "androidx.preference:preference-ktx:1.1.1"
+
+            const val navigationFragment = "androidx.navigation:navigation-fragment-ktx:2.3.0"
+            const val navigationUi = "androidx.navigation:navigation-ui-ktx:2.3.0"
 
             const val workManager = "androidx.work:work-runtime-ktx:2.3.4"
             const val biometric = "androidx.biometric:biometric:1.0.1"
@@ -67,7 +71,6 @@ object Config {
             const val core = "com.google.firebase:firebase-core:17.3.0"
             const val iid = "com.google.firebase:firebase-iid:20.1.5"
             const val messaging = "com.google.firebase:firebase-messaging:20.1.5"
-            const val crashlytics = "com.google.firebase:firebase-crashlytics:17.0.1"
         }
 
         object Square {
@@ -94,12 +97,14 @@ object Config {
         }
 
         object Misc {
-            const val lokalize = "com.lokalise.android:sdk:2.0.0-beta-5"
+            const val sentry = "io.sentry:sentry-android:2.2.2"
             const val jackson = "com.fasterxml.jackson.module:jackson-module-kotlin:2.10.1"
             const val threeTenBp = "org.threeten:threetenbp:1.4.0"
-            const val threeTenAbp = "com.jakewharton.threetenabp:threetenabp:1.2.1"
             const val javaxInject = "javax.inject:javax.inject:1"
             const val blurView = "com.eightbitlab:blurview:1.6.3"
+            const val iconDialog = "com.maltaisn:icondialog:3.3.0"
+            const val iconDialogMaterial = "com.maltaisn:iconpack-community-material:5.3.45"
+            const val emoji = "com.vdurmont:emoji-java:5.1.1"
         }
     }
 

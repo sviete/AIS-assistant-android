@@ -5,7 +5,6 @@ plugins {
     id("kotlin-android-extensions")
     id("com.google.firebase.appdistribution")
     id("com.github.triplet.play") version "2.7.5"
-    id("com.google.firebase.crashlytics")
 }
 
 buildscript {
@@ -64,12 +63,31 @@ android {
     buildTypes {
         named("debug").configure {
             applicationIdSuffix = ".debug"
+            manifestPlaceholders["sentryEnabled"] = "false"
         }
         named("release").configure {
             isDebuggable = false
             isJniDebuggable = false
             isZipAlignEnabled = true
             signingConfig = signingConfigs.getByName("release")
+            manifestPlaceholders["sentryEnabled"] = "true"
+        }
+    }
+    flavorDimensions("version")
+    productFlavors {
+        create("minimal") {
+            applicationIdSuffix = ".minimal"
+            versionNameSuffix = "-minimal"
+        }
+        create("full") {
+            applicationIdSuffix = ""
+            versionNameSuffix = "-full"
+        }
+    }
+
+    playConfigs {
+        register("minimal") {
+            isEnabled = false
         }
     }
 
@@ -99,6 +117,11 @@ dependencies {
     implementation(project(":domain"))
 
     implementation(Config.Dependency.Misc.blurView)
+    implementation(Config.Dependency.Misc.iconDialog)
+    implementation(Config.Dependency.Misc.iconDialogMaterial)
+    implementation(Config.Dependency.Misc.emoji) {
+        exclude(group = "org.json", module = "json")
+    }
 
     implementation(Config.Dependency.Kotlin.core)
     implementation(Config.Dependency.Kotlin.coroutines)
@@ -112,27 +135,27 @@ dependencies {
     implementation(Config.Dependency.AndroidX.constraintlayout)
     implementation(Config.Dependency.AndroidX.recyclerview)
     implementation(Config.Dependency.AndroidX.preference)
+    implementation(Config.Dependency.AndroidX.navigationFragment)
+    implementation(Config.Dependency.AndroidX.navigationUi)
     implementation(Config.Dependency.Google.material)
 
     implementation(Config.Dependency.AndroidX.roomRuntime)
     implementation(Config.Dependency.AndroidX.roomKtx)
     kapt(Config.Dependency.AndroidX.roomCompiler)
 
-    implementation(Config.Dependency.Misc.threeTenAbp) {
-        exclude(group = "org.threeten")
-    }
-
-    implementation(Config.Dependency.Misc.lokalize)
     implementation(Config.Dependency.Misc.jackson)
+    implementation(Config.Dependency.Square.okhttp)
 
-    implementation(Config.Dependency.Play.location)
-    implementation(Config.Dependency.Firebase.core)
-    implementation(Config.Dependency.Firebase.iid)
-    implementation(Config.Dependency.Firebase.messaging)
-    implementation(Config.Dependency.Firebase.crashlytics)
+    "fullImplementation"(Config.Dependency.Play.location)
+    "fullImplementation"(Config.Dependency.Firebase.core)
+    "fullImplementation"(Config.Dependency.Firebase.iid)
+    "fullImplementation"(Config.Dependency.Firebase.messaging)
+    "fullImplementation"(Config.Dependency.Misc.sentry)
+    "fullImplementation"(Config.Dependency.Kotlin.coroutinesPlayServices)
 
     implementation(Config.Dependency.AndroidX.workManager)
     implementation(Config.Dependency.AndroidX.biometric)
+    implementation(Config.Dependency.AndroidX.webKit)
 
     testImplementation(Config.Dependency.Testing.spek2Jvm)
     testImplementation(Config.Dependency.Testing.spek2JUnit)

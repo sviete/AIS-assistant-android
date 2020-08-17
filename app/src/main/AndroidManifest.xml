@@ -4,6 +4,7 @@
     package="io.homeassistant.companion.android">
 
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -12,6 +13,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     
     <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
     <uses-feature android:name="android.hardware.telephony" android:required="false"/>
@@ -21,6 +24,7 @@
     <uses-feature android:name="android.hardware.sensor" android:required="false"/>
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
 
     <application
         android:name=".HomeAssistantApplication"
@@ -34,7 +38,7 @@
         android:networkSecurityConfig="@xml/network_security_config"
         tools:ignore="GoogleAppIndexingWarning">
 
-        <receiver android:name=".widgets.ButtonWidget">
+        <receiver android:name=".widgets.ButtonWidget" android:label="@string/widget_button_image_description">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="io.homeassistant.companion.android.widgets.ButtonWidget.CALL_SERVICE" />
@@ -46,10 +50,26 @@
                 android:resource="@xml/button_widget_info" />
         </receiver>
 
-        <!-- Start things like SensorWorker on device boot -->
-        <receiver android:name=".HomeAssistantBootReceiver">
+        <receiver android:name=".widgets.StaticWidget" android:label="@string/widget_static_image_description">
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="io.homeassistant.companion.android.widgets.StaticWidget.RECEIVE_DATA" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/static_widget_info" />
+        </receiver>
+
+        <!-- Start things like SensorWorker on device boot -->
+        <receiver android:name=".sensors.SensorReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.app.action.NEXT_ALARM_CLOCK_CHANGED" />
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
             </intent-filter>
         </receiver>
 
@@ -59,32 +79,20 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".widgets.StaticWidgetConfigureActivity">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <receiver
-            android:name=".background.LocationBroadcastReceiver"
+            android:name=".sensors.LocationBroadcastReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
                 <action android:name="io.homeassistant.companion.android.background.REQUEST_ACCURATE_UPDATE" />
             </intent-filter>
         </receiver>
-
-        <receiver
-            android:name=".notifications.NotificationActionReceiver"
-            android:enabled="true"
-            android:exported="true" />
-
-        <receiver
-            android:name=".notifications.NotificationDeleteReceiver"
-            android:enabled="true"
-            android:exported="true" />
-
-        <receiver
-            android:name=".notifications.NotificationContentReceiver"
-            android:enabled="true"
-            android:exported="true" />
 
         <activity android:name=".launch.LaunchActivity">
             <intent-filter>
@@ -111,20 +119,34 @@
             android:name=".settings.SettingsActivity"
             android:parentActivityName=".webview.WebViewActivity" />
 
-        <service
-            android:name=".notifications.MessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
+        <activity
+            android:name=".nfc.TagReaderActivity"
+            android:label="@string/tag_reader_title">
+            <tools:validation testUrl="https://www.home-assistant.io/tag/123e4567-e89b-12d3-a456-426614174000" />
 
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@drawable/ic_stat_ic_notification" />
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_color"
-            android:resource="@color/colorPrimary" />
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="www.home-assistant.io"
+                    android:pathPrefix="/tag/" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="https"
+                    android:host="www.home-assistant.io"
+                    android:pathPrefix="/tag/" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".nfc.NfcSetupActivity"
+            android:label="@string/nfc_title_nfc_setup" />
     </application>
 
 </manifest>

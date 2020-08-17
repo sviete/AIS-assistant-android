@@ -14,7 +14,6 @@ import io.homeassistant.companion.android.domain.integration.DeviceRegistration
 import io.homeassistant.companion.android.domain.integration.Entity
 import io.homeassistant.companion.android.domain.integration.IntegrationRepository
 import io.homeassistant.companion.android.domain.integration.Panel
-import io.homeassistant.companion.android.domain.integration.Sensor
 import io.homeassistant.companion.android.domain.integration.SensorRegistration
 import io.homeassistant.companion.android.domain.integration.Service
 import io.homeassistant.companion.android.domain.integration.UpdateLocation
@@ -49,6 +48,7 @@ class IntegrationRepositoryImpl @Inject constructor(
 
         private const val PREF_ZONE_ENABLED = "zone_enabled"
         private const val PREF_BACKGROUND_ENABLED = "background_enabled"
+        private const val PREF_CALL_ENABLED = "call_enabled"
         private const val PREF_FULLSCREEN_ENABLED = "fullscreen_enabled"
         private const val PREF_SESSION_TIMEOUT = "session_timeout"
         private const val PREF_SESSION_EXPIRE = "session_expire"
@@ -174,10 +174,37 @@ class IntegrationRepositoryImpl @Inject constructor(
         throw IntegrationException()
     }
 
+    override suspend fun scanTag(data: HashMap<String, Any>) {
+        var wasSuccess = false
+
+        for (it in urlRepository.getApiUrls()) {
+            try {
+                wasSuccess =
+                    integrationService.scanTag(
+                        it.toHttpUrlOrNull()!!,
+                        IntegrationRequest(
+                            "scan_tag",
+                            data
+                        )
+                    ).isSuccessful
+            } catch (e: Exception) {
+                // Ignore failure until we are out of URLS to try!
+            }
+            // if we had a successful call we can return
+            if (wasSuccess)
+                return
+        }
+
+        throw IntegrationException()
+    }
+
     override suspend fun fireEvent(eventType: String, eventData: Map<String, Any>) {
         var wasSuccess = false
 
-        val fireEventRequest = FireEventRequest(eventType, eventData)
+        val fireEventRequest = FireEventRequest(
+            eventType,
+            eventData.plus(Pair("device_id", deviceId))
+        )
 
         for (it in urlRepository.getApiUrls()) {
             try {
@@ -222,22 +249,6 @@ class IntegrationRepositoryImpl @Inject constructor(
         throw IntegrationException()
     }
 
-    override suspend fun setZoneTrackingEnabled(enabled: Boolean) {
-        localStorage.putBoolean(PREF_ZONE_ENABLED, enabled)
-    }
-
-    override suspend fun isZoneTrackingEnabled(): Boolean {
-        return localStorage.getBoolean(PREF_ZONE_ENABLED)
-    }
-
-    override suspend fun setBackgroundTrackingEnabled(enabled: Boolean) {
-        localStorage.putBoolean(PREF_BACKGROUND_ENABLED, enabled)
-    }
-
-    override suspend fun isBackgroundTrackingEnabled(): Boolean {
-        return localStorage.getBoolean(PREF_BACKGROUND_ENABLED)
-    }
-
     override suspend fun setFullScreenEnabled(enabled: Boolean) {
         localStorage.putBoolean(PREF_FULLSCREEN_ENABLED, enabled)
     }
@@ -278,6 +289,27 @@ class IntegrationRepositoryImpl @Inject constructor(
 
             if (response != null)
                 return response.themeColor
+        }
+
+        throw IntegrationException()
+    }
+
+    override suspend fun getHomeAssistantVersion(): String {
+        val getConfigRequest =
+            IntegrationRequest(
+                "get_config",
+                null
+            )
+        var response: GetConfigResponse? = null
+        for (it in urlRepository.getApiUrls()) {
+            try {
+                response = integrationService.getConfig(it.toHttpUrlOrNull()!!, getConfigRequest)
+            } catch (e: Exception) {
+                // Ignore failure until we are out of URLS to try!
+            }
+
+            if (response != null)
+                return response.version
         }
 
         throw IntegrationException()
@@ -351,7 +383,7 @@ class IntegrationRepositoryImpl @Inject constructor(
         throw IntegrationException()
     }
 
-    override suspend fun updateSensors(sensors: Array<Sensor<Any>>): Boolean {
+    override suspend fun updateSensors(sensors: Array<SensorRegistration<Any>>): Boolean {
         val integrationRequest = IntegrationRequest(
             "update_sensor_states",
             sensors.map {
@@ -384,6 +416,15 @@ class IntegrationRepositoryImpl @Inject constructor(
 
     private suspend fun createUpdateRegistrationRequest(deviceRegistration: DeviceRegistration): RegisterDeviceRequest {
         val oldDeviceRegistration = getRegistration()
+        val pushToken = deviceRegistration.pushToken ?: oldDeviceRegistration.pushToken
+        val appData = if (pushToken == null) {
+            null
+        } else {
+            hashMapOf(
+                "push_url" to PUSH_URL,
+                "push_token" to pushToken
+            )
+        }
         return RegisterDeviceRequest(
             null,
             null,
@@ -394,11 +435,7 @@ class IntegrationRepositoryImpl @Inject constructor(
             null,
             osVersion,
             null,
-            hashMapOf(
-                "push_url" to PUSH_URL,
-                "push_token" to (deviceRegistration.pushToken ?: oldDeviceRegistration.pushToken
-                ?: "")
-            ),
+            appData,
             null
         )
     }

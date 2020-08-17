@@ -30,8 +30,6 @@ class SettingsPresenterImpl @Inject constructor(
     override fun getBoolean(key: String, defValue: Boolean): Boolean {
         return runBlocking {
             return@runBlocking when (key) {
-                "location_zone" -> integrationUseCase.isZoneTrackingEnabled()
-                "location_background" -> integrationUseCase.isBackgroundTrackingEnabled()
                 "fullscreen" -> integrationUseCase.isFullScreenEnabled()
                 "app_lock" -> authenticationUseCase.isLockEnabled()
                 else -> throw IllegalArgumentException("No boolean found by this key: $key")
@@ -42,14 +40,10 @@ class SettingsPresenterImpl @Inject constructor(
     override fun putBoolean(key: String, value: Boolean) {
         mainScope.launch {
             when (key) {
-                "location_zone" -> integrationUseCase.setZoneTrackingEnabled(value)
-                "location_background" -> integrationUseCase.setBackgroundTrackingEnabled(value)
                 "fullscreen" -> integrationUseCase.setFullScreenEnabled(value)
                 "app_lock" -> authenticationUseCase.setLockEnabled(value)
                 else -> throw IllegalArgumentException("No boolean found by this key: $key")
             }
-            if (key == "location_zone" || key == "location_background")
-                settingsView.onLocationSettingChanged()
         }
     }
 
@@ -151,7 +145,7 @@ class SettingsPresenterImpl @Inject constructor(
             try {
                 panels = integrationUseCase.getPanels()
             } catch (e: Exception) {
-                Log.e(SettingsPresenterImpl.TAG, "Issue getting panels.", e)
+                Log.e(TAG, "Issue getting panels.", e)
             }
             panels
         }
@@ -178,6 +172,22 @@ class SettingsPresenterImpl @Inject constructor(
     override fun getSessionExpireMillis(): Long {
         return runBlocking {
             integrationUseCase.getSessionExpireMillis()
+        }
+    }
+
+    // Make sure Core is above 0.114.0 because that's the first time NFC is available.
+    override fun nfcEnabled(): Boolean {
+        return runBlocking {
+            var splitVersion = listOf<String>()
+
+            try {
+                splitVersion = integrationUseCase.getHomeAssistantVersion().split(".")
+            } catch (e: Exception) {
+                Log.e(TAG, "Unable to get core version.", e)
+            }
+
+            return@runBlocking splitVersion.size > 2 &&
+                    (Integer.parseInt(splitVersion[0]) > 0 || Integer.parseInt(splitVersion[1]) >= 114)
         }
     }
 }

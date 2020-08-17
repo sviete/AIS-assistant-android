@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ShortcutInfo
 import android.content.pm.ShortcutManager
 import android.content.res.Configuration
@@ -17,7 +18,6 @@ import android.text.method.HideReturnsTransformationMethod
 import android.text.method.PasswordTransformationMethod
 import android.util.Log
 import android.util.Rational
-import android.view.MenuInflater
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.HttpAuthHandler
@@ -37,23 +37,23 @@ import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.room.Room
-import com.lokalise.sdk.LokaliseContextWrapper
-import com.lokalise.sdk.menu_inflater.LokaliseMenuInflater
+import androidx.core.app.ActivityCompat
+import androidx.core.graphics.ColorUtils
+import androidx.webkit.WebSettingsCompat
+import androidx.webkit.WebViewFeature
 import eightbitlab.com.blurview.RenderScriptBlur
 import io.homeassistant.companion.android.BuildConfig
 import io.homeassistant.companion.android.DaggerPresenterComponent
 import io.homeassistant.companion.android.PresenterModule
 import io.homeassistant.companion.android.R
 import io.homeassistant.companion.android.authenticator.Authenticator
-import io.homeassistant.companion.android.background.LocationBroadcastReceiver
 import io.homeassistant.companion.android.common.dagger.GraphComponentAccessor
-import io.homeassistant.companion.android.database.AppDataBase
-import io.homeassistant.companion.android.database.AuthenticationList
+import io.homeassistant.companion.android.database.AppDatabase
+import io.homeassistant.companion.android.database.authentication.Authentication
 import io.homeassistant.companion.android.onboarding.OnboardingActivity
+import io.homeassistant.companion.android.sensors.LocationBroadcastReceiver
 import io.homeassistant.companion.android.sensors.SensorWorker
 import io.homeassistant.companion.android.settings.SettingsActivity
-import io.homeassistant.companion.android.util.PermissionManager
 import io.homeassistant.companion.android.util.isStarted
 import javax.inject.Inject
 import kotlinx.android.synthetic.main.activity_webview.*
@@ -222,10 +222,10 @@ class WebViewActivity : AppCompatActivity(), io.homeassistant.companion.android.
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         request?.resources?.forEach {
                             if (it == PermissionRequest.RESOURCE_VIDEO_CAPTURE) {
-                                if (PermissionManager.hasPermission(
+                                if (ActivityCompat.checkSelfPermission(
                                         context,
                                         android.Manifest.permission.CAMERA
-                                    )
+                                    ) == PackageManager.PERMISSION_GRANTED
                                 ) {
                                     request.grant(arrayOf(it))
                                 } else {
@@ -235,10 +235,10 @@ class WebViewActivity : AppCompatActivity(), io.homeassistant.companion.android.
                                     )
                                 }
                             } else if (it == PermissionRequest.RESOURCE_AUDIO_CAPTURE) {
-                                if (PermissionManager.hasPermission(
+                                if (ActivityCompat.checkSelfPermission(
                                         context,
                                         android.Manifest.permission.RECORD_AUDIO
-                                    )
+                                    ) == PackageManager.PERMISSION_GRANTED
                                 ) {
                                     request.grant(arrayOf(it))
                                 } else {
@@ -334,6 +334,15 @@ class WebViewActivity : AppCompatActivity(), io.homeassistant.companion.android.
             }, "externalApp")
         }
 
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
+            val nightModeFlags = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+            if (nightModeFlags == Configuration.UI_MODE_NIGHT_YES) {
+                WebSettingsCompat.setForceDark(webView.settings, WebSettingsCompat.FORCE_DARK_ON)
+            } else {
+                WebSettingsCompat.setForceDark(webView.settings, WebSettingsCompat.FORCE_DARK_OFF)
+            }
+        }
+
         val cookieManager = CookieManager.getInstance()
         cookieManager.setAcceptCookie(true)
         cookieManager.setAcceptThirdPartyCookies(webView, true)
@@ -349,9 +358,7 @@ class WebViewActivity : AppCompatActivity(), io.homeassistant.companion.android.
         if (result == Authenticator.SUCCESS) {
             unlocked = true
             blurView.setBlurEnabled(false)
-        } else if (result == Authenticator.CANCELED)
-            finishAffinity()
-        else authenticator.authenticate()
+        } else finishAffinity()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -440,14 +447,6 @@ class WebViewActivity : AppCompatActivity(), io.homeassistant.companion.android.
         }
     }
 
-    override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(LokaliseContextWrapper.wrap(newBase))
-    }
-
-    override fun getMenuInflater(): MenuInflater {
-        return LokaliseMenuInflater(this)
-    }
-
     override fun openOnBoarding() {
         finish()
         startActivity(Intent(this, OnboardingActivity::class.java))
@@ -467,8 +466,16 @@ class WebViewActivity : AppCompatActivity(), io.homeassistant.companion.android.
         waitForConnection()
     }
 
-    override fun setStatusBarColor(color: Int) {
+    override fun setStatusBarAndNavigationBarColor(color: Int) {
+        var flags = window.decorView.systemUiVisibility
+        flags = if (ColorUtils.calculateLuminance(color) < 0.5) { // If color is dark...
+            flags and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv() and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR.inv() // Remove light flag
+        } else {
+            flags or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR // Add light flag
+        }
+        window.decorView.systemUiVisibility = flags
         window.statusBarColor = color
+        window.navigationBarColor = color
     }
 
     override fun setExternalAuth(script: String) {
@@ -541,12 +548,7 @@ class WebViewActivity : AppCompatActivity(), io.homeassistant.companion.android.
 
     @SuppressLint("InflateParams")
     fun authenticationDialog(handler: HttpAuthHandler, host: String, realm: String, authError: Boolean) {
-        val db = Room.databaseBuilder(
-            applicationContext,
-            AppDataBase::class.java, "HomeAssistantDB")
-            .allowMainThreadQueries()
-            .build()
-        val authenticationDao = db.authenticationDatabaseDao()
+        val authenticationDao = AppDatabase.getInstance(applicationContext).authenticationDao()
         val httpAuth = authenticationDao.get((resourceURL + realm))
 
         val inflater = layoutInflater
@@ -592,10 +594,21 @@ class WebViewActivity : AppCompatActivity(), io.homeassistant.companion.android.
                     if (username.text.toString() != "" && password.text.toString() != "") {
                         if (remember.isChecked) {
                             if (authError)
-                                authenticationDao.update(AuthenticationList((resourceURL + realm), username.text.toString(), password.text.toString()))
+                                authenticationDao.update(
+                                    Authentication(
+                                        (resourceURL + realm),
+                                        username.text.toString(),
+                                        password.text.toString()
+                                    )
+                                )
                             else
-                                authenticationDao.insert(AuthenticationList((resourceURL + realm), username.text.toString(), password.text.toString()))
-                            db.close()
+                                authenticationDao.insert(
+                                    Authentication(
+                                        (resourceURL + realm),
+                                        username.text.toString(),
+                                        password.text.toString()
+                                    )
+                                )
                         }
                         handler.proceed(username.text.toString(), password.text.toString())
                     } else AlertDialog.Builder(this)

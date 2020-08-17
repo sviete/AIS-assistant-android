@@ -32,7 +32,9 @@ jobs:
           echo ::set-env name=VERSION_CODE::$VC
 
       - name: Mock debug google-services.json
-        run: mv .github/mock-google-services.json app/src/debug/google-services.json
+        run: |
+          cp .github/mock-google-services.json app/src/debug/google-services.json
+          cp .github/mock-google-services.json app/src/minimal/google-services.json
 
       - name: Inflate release_keystore.keystore
         env:
@@ -82,14 +84,14 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
           KEYSTORE_ALIAS_PASSWORD: ${{ secrets.KEYSTORE_ALIAS_PASSWORD }}
-        run: ./gradlew appDistributionUploadRelease
+        run: ./gradlew appDistributionUploadFullRelease
 
       - name: Deploy to Playstore Beta
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
           KEYSTORE_ALIAS_PASSWORD: ${{ secrets.KEYSTORE_ALIAS_PASSWORD }}
-        run: ./gradlew publishReleaseBundle
+        run: ./gradlew publishFullReleaseBundle
 
       - name: Promote to Beta to Production
         env:
@@ -97,3 +99,11 @@ jobs:
           KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
           KEYSTORE_ALIAS_PASSWORD: ${{ secrets.KEYSTORE_ALIAS_PASSWORD }}
         run: ./gradlew promoteArtifact --from-track beta --promote-track production
+
+      - name: Upload files to a GitHub release page
+        uses: svenstaro/upload-release-action@2.0.0
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./app/build/outputs/apk/*/release/*-release.apk
+          file_glob: true
+          tag: ${{ github.ref }}

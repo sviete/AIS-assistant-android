@@ -12,12 +12,6 @@ interface IntegrationRepository {
 
     suspend fun getZones(): Array<Entity<ZoneAttributes>>
 
-    suspend fun setZoneTrackingEnabled(enabled: Boolean)
-    suspend fun isZoneTrackingEnabled(): Boolean
-
-    suspend fun setBackgroundTrackingEnabled(enabled: Boolean)
-    suspend fun isBackgroundTrackingEnabled(): Boolean
-
     suspend fun setFullScreenEnabled(enabled: Boolean)
     suspend fun isFullScreenEnabled(): Boolean
 
@@ -29,6 +23,8 @@ interface IntegrationRepository {
 
     suspend fun getThemeColor(): String
 
+    suspend fun getHomeAssistantVersion(): String
+
     suspend fun getPanels(): Array<Panel>
 
     suspend fun getServices(): Array<Service>
@@ -37,8 +33,10 @@ interface IntegrationRepository {
 
     suspend fun callService(domain: String, service: String, serviceData: HashMap<String, Any>)
 
+    suspend fun scanTag(data: HashMap<String, Any>)
+
     suspend fun fireEvent(eventType: String, eventData: Map<String, Any>)
 
     suspend fun registerSensor(sensorRegistration: SensorRegistration<Any>)
-    suspend fun updateSensors(sensors: Array<Sensor<Any>>): Boolean
+    suspend fun updateSensors(sensors: Array<SensorRegistration<Any>>): Boolean
 }

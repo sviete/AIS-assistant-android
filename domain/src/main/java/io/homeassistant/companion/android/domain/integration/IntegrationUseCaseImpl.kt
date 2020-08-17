@@ -48,24 +48,12 @@ class IntegrationUseCaseImpl @Inject constructor(
         return integrationRepository.fireEvent(eventType, eventData)
     }
 
+    override suspend fun scanTag(data: HashMap<String, Any>) {
+        return integrationRepository.scanTag(data)
+    }
+
     override suspend fun getZones(): Array<Entity<ZoneAttributes>> {
         return integrationRepository.getZones()
-    }
-
-    override suspend fun setZoneTrackingEnabled(enabled: Boolean) {
-        return integrationRepository.setZoneTrackingEnabled(enabled)
-    }
-
-    override suspend fun isZoneTrackingEnabled(): Boolean {
-        return integrationRepository.isZoneTrackingEnabled()
-    }
-
-    override suspend fun setBackgroundTrackingEnabled(enabled: Boolean) {
-        return integrationRepository.setBackgroundTrackingEnabled(enabled)
-    }
-
-    override suspend fun isBackgroundTrackingEnabled(): Boolean {
-        return integrationRepository.isBackgroundTrackingEnabled()
     }
 
     override suspend fun setFullScreenEnabled(enabled: Boolean) {
@@ -108,11 +96,15 @@ class IntegrationUseCaseImpl @Inject constructor(
         return integrationRepository.getThemeColor()
     }
 
+    override suspend fun getHomeAssistantVersion(): String {
+        return integrationRepository.getHomeAssistantVersion()
+    }
+
     override suspend fun registerSensor(sensorRegistration: SensorRegistration<Any>) {
         return integrationRepository.registerSensor(sensorRegistration)
     }
 
-    override suspend fun updateSensors(sensors: Array<Sensor<Any>>): Boolean {
+    override suspend fun updateSensors(sensors: Array<SensorRegistration<Any>>): Boolean {
         return integrationRepository.updateSensors(sensors)
     }
 }

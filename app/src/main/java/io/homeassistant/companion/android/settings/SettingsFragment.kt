@@ -14,10 +14,11 @@ import io.homeassistant.companion.android.PresenterModule
 import io.homeassistant.companion.android.R
 import io.homeassistant.companion.android.authenticator.Authenticator
 import io.homeassistant.companion.android.common.dagger.GraphComponentAccessor
+import io.homeassistant.companion.android.nfc.NfcSetupActivity
+import io.homeassistant.companion.android.sensors.SensorsSettingsFragment
 import io.homeassistant.companion.android.settings.shortcuts.ShortcutsFragment
 import io.homeassistant.companion.android.settings.ssid.SsidDialogFragment
 import io.homeassistant.companion.android.settings.ssid.SsidPreference
-import io.homeassistant.companion.android.util.PermissionManager
 import javax.inject.Inject
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
@@ -91,6 +92,14 @@ class SettingsFragment : PreferenceFragmentCompat(), SettingsView {
             true
         }
 
+        findPreference<Preference>("nfc_tags")?.let {
+            it.isVisible = presenter.nfcEnabled()
+            it.onPreferenceClickListener = Preference.OnPreferenceClickListener {
+                startActivity(NfcSetupActivity.newInstance(requireActivity()))
+                true
+            }
+        }
+
         findPreference<EditTextPreference>("connection_internal")?.onPreferenceChangeListener =
             onChangeUrlValidator
 
@@ -108,18 +117,21 @@ class SettingsFragment : PreferenceFragmentCompat(), SettingsView {
             shortcuts?.isVisible = false
         }
 
+        findPreference<Preference>("sensors")?.setOnPreferenceClickListener {
+            parentFragmentManager
+                .beginTransaction()
+                .replace(R.id.content, SensorsSettingsFragment.newInstance())
+                .addToBackStack(getString(R.string.sensors))
+                .commit()
+            return@setOnPreferenceClickListener true
+        }
+
         findPreference<Preference>("version")?.let {
+            it.isCopyingEnabled = true
             it.summary = BuildConfig.VERSION_NAME
         }
 
         presenter.onCreate()
-    }
-
-    override fun onLocationSettingChanged() {
-        if (!PermissionManager.checkLocationPermission(requireContext())) {
-            PermissionManager.requestLocationPermissions(this)
-        }
-        PermissionManager.restartLocationTracking(requireContext())
     }
 
     override fun disableInternalConnection() {
@@ -146,22 +158,6 @@ class SettingsFragment : PreferenceFragmentCompat(), SettingsView {
             ssidDialog.show(fm, SSID_DIALOG_TAG)
         } else {
             super.onDisplayPreferenceDialog(preference)
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (PermissionManager.validateLocationPermissions(requestCode, grantResults)) {
-            PermissionManager.restartLocationTracking(requireContext())
-        } else {
-            // If we don't have permissions, don't let them in!
-            findPreference<SwitchPreference>("location_zone")!!.isChecked = false
-            findPreference<SwitchPreference>("location_background")!!.isChecked = false
         }
     }
 
